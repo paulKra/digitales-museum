@@ -1,16 +1,40 @@
 ---
+import { getEntries } from "astro:content";
+import Main from "../components/Main.tsx";
+import { getCollection, getEntry, render } from "astro:content";
+import "../styles/global.css";
+import { experimental_AstroContainer } from "astro/container";
+import path from "path";
+import fs from "fs";
+import { getContainerRenderer } from "@astrojs/mdx";
+import { loadRenderers } from "astro:container";
+import Layout from "@/components/layout.astro";
 
+const band1 = await getCollection("band1");
+const entries = await getEntries(band1);
+const renderers = await loadRenderers([getContainerRenderer()]);
+const container = await experimental_AstroContainer.create({
+  renderers: renderers,
+});
+const renderedLocations = await Promise.all(
+  entries.map(async (entry) => {
+    const { Content } = await render(entry);
+    const html = await container.renderToString(Content);
+    const filePath = path.join("public/content", `${entry.id}.html`);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, html);
+    console.log(`File written to ${filePath}`);
+  })
+);
+const bgb1 = await getEntry("band1", "bgb1");
+if (!bgb1) {
+  throw new Error("Entry not found");
+}
+const { Content } = await render(bgb1);
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout>
+  <div id="map-wrapper" class="">
+    <Main client:only="react" locations={entries} />
+  </div>
+</Layout>
