@@ -9,6 +9,7 @@ import mdx from "@astrojs/mdx";
 export default defineConfig({
   integrations: [react(), mdx()],
   site: "https://paulKra.github.io",
+  base: "/digitales-museum/",
   vite: {
     plugins: [tailwindcss()],
   },
