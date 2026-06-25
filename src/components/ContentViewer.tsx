@@ -1,7 +1,8 @@
-import { Box, FileText } from "lucide-react";
+import { Box, FileText, Volume2 } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { getPublicAssetUrl } from "@/lib/public-assets";
 import { type MapPoint } from "./Map";
 
 const ModelViewer = lazy(() =>
@@ -16,12 +17,18 @@ interface ContentViewerProps {
 }
 
 export function ContentViewer({ point, onClose, isExpanded, onToggleExpand }: ContentViewerProps) {
-    const [activeView, setActiveView] = useState<"model" | "content">(() => point?.model3d ? "model" : "content");
+    const [activeView, setActiveView] = useState<"model" | "audio" | "content">(() => point?.model3d ? "model" : point?.audio ? "audio" : "content");
 
     if (!point) return null;
 
     const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${point.lat},${point.lon}`)}&travelmode=walking`;
     const hasModel = Boolean(point.model3d);
+    const hasAudio = Boolean(point.audio?.url);
+    const audioUrl = point.audio?.url ? getPublicAssetUrl(point.audio.url) : "";
+    const effectiveView =
+        activeView === "model" && hasModel ? "model" :
+            activeView === "audio" && hasAudio ? "audio" :
+                "content";
 
     return (
         <div className="max-w-none flex h-full flex-col bg-card text-card-foreground shadow-lg animate-in slide-in-from-bottom duration-300">
@@ -93,20 +100,32 @@ export function ContentViewer({ point, onClose, isExpanded, onToggleExpand }: Co
                 </div>
             </header>
             <div className="flex-1 overflow-y-auto px-6 py-6">
-                {hasModel && (
+                {(hasModel || hasAudio) && (
                     <div className="mb-5 inline-flex rounded-md border bg-muted/40 p-1">
-                        <button
-                            type="button"
-                            onClick={() => setActiveView("model")}
-                            className={`inline-flex h-9 items-center gap-2 rounded-sm px-3 text-sm font-medium transition-colors ${activeView === "model" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                        >
-                            <Box className="h-4 w-4" aria-hidden="true" />
-                            3D
-                        </button>
+                        {hasModel && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveView("model")}
+                                className={`inline-flex h-9 items-center gap-2 rounded-sm px-3 text-sm font-medium transition-colors ${effectiveView === "model" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                            >
+                                <Box className="h-4 w-4" aria-hidden="true" />
+                                3D
+                            </button>
+                        )}
+                        {hasAudio && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveView("audio")}
+                                className={`inline-flex h-9 items-center gap-2 rounded-sm px-3 text-sm font-medium transition-colors ${effectiveView === "audio" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                            >
+                                <Volume2 className="h-4 w-4" aria-hidden="true" />
+                                Audio
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={() => setActiveView("content")}
-                            className={`inline-flex h-9 items-center gap-2 rounded-sm px-3 text-sm font-medium transition-colors ${activeView === "content" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                            className={`inline-flex h-9 items-center gap-2 rounded-sm px-3 text-sm font-medium transition-colors ${effectiveView === "content" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                         >
                             <FileText className="h-4 w-4" aria-hidden="true" />
                             Text
@@ -114,7 +133,19 @@ export function ContentViewer({ point, onClose, isExpanded, onToggleExpand }: Co
                     </div>
                 )}
 
-                {activeView === "model" && point.model3d ? (
+                {hasAudio && point.audio && (
+                    <div
+                        className={effectiveView === "audio" ? "rounded-md border bg-muted/30 p-4" : "hidden"}
+                        aria-hidden={effectiveView !== "audio"}
+                    >
+                        <h3 className="mb-3 text-sm font-semibold">{point.audio.title || "Audio"}</h3>
+                        <audio key={String(point.id)} className="w-full" controls src={audioUrl}>
+                            Ihr Browser unterstützt das Audio-Element nicht.
+                        </audio>
+                    </div>
+                )}
+
+                {effectiveView === "model" && point.model3d ? (
                     <Suspense
                         fallback={
                             <div className="grid h-[360px] place-items-center rounded-md border bg-slate-50 text-sm text-muted-foreground md:h-[460px]">
@@ -124,13 +155,13 @@ export function ContentViewer({ point, onClose, isExpanded, onToggleExpand }: Co
                     >
                         <ModelViewer model={point.model3d} />
                     </Suspense>
-                ) : (
+                ) : effectiveView === "content" ? (
                     <div className="prose prose-sm prose-slate dark:prose-invert max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {point.content}
                         </ReactMarkdown>
                     </div>
-                )}
+                ) : null}
             </div>
         </div>
     );

@@ -29,6 +29,10 @@ export interface MapPoint {
     description: string;
     content: string;
     model3d?: Model3D;
+    audio?: {
+        title?: string;
+        url: string;
+    };
 }
 
 interface MapProps {

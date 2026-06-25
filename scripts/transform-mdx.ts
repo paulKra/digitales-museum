@@ -45,6 +45,7 @@ async function transform() {
                     description: data.description || "",
                     content: cleanedMarkdown,
                     model3d: data.model3d,
+                    audio: data.audio,
                 };
             })
         );

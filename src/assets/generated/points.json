@@ -101,6 +101,10 @@
     "model3d": {
       "title": "3D-Modell",
       "glbUrl": "/models/location-models/location-model-02.glb"
+    },
+    "audio": {
+      "title": "Lesung",
+      "url": "/audio/location-poi-02.wav"
     }
   },
   {
